@@ -1,28 +1,40 @@
 /**
  * Author: Michael Bromley
- * Version: 1
  */
 let ctx;
 let params = {
-    sensitivity: {
-        value: 50,
+    smoothing: {
+        value: 5,
         type: 'range',
-        label: 'Sensitivity',
+        label: 'Smoothing',
         min: 1,
-        max: 100
+        max: 10
+    },
+    hue: {
+        value: 174,
+        type: 'range',
+        label: 'Hue',
+        min: 0,
+        max: 359
+    },
+    spread: {
+        value: 15,
+        type: 'range',
+        label: 'Spread',
+        min: 0,
+        max: 100,
+        step: 5
     },
 };
 let initDone = false;
 let minDimension = 0;
 let acc = 0;
 let counter = 0;
-
-let graphVal = 0;
-let graphV = 0;
-const GRAPH_DECAY = 0.1;
+let ctxBuffer;
 
 function init(skqw) {
     ctx = skqw.createCanvas().getContext('2d');
+    ctxBuffer = document.createElement('canvas').getContext('2d');
 
     setTimeout(() => {
         resize(skqw);
@@ -36,66 +48,42 @@ function tick(skqw) {
         return;
     }
     const { width, height } = skqw.dimensions;
-    const ft = skqw.sample.ft;
+    const { ft, ts } = skqw.sample;
 
     let volume = 0;
     for (let i = 0; i < ft.length; i ++) {
         volume += ft[i];
     }
     let delta = volume - acc;
-    acc += delta / 10;
+    acc += delta / 50;
 
-    ctx.fillStyle = `hsla(0, 0%, 0%, 0.5)`;
+    ctxBuffer.save();
+    ctxBuffer.clearRect(-width / 2, -height / 2, width, height);
+    ctxBuffer.globalAlpha = 0.99;
+    ctxBuffer.scale(0.99, 0.99);
+    ctxBuffer.drawImage(ctx.canvas, -width / 2, -height / 2);
+    ctx.clearRect(-width / 2, -height / 2, width, height);
+    ctx.drawImage(ctxBuffer.canvas, -width / 2, -height / 2);
+    ctxBuffer.restore();
+
+    ctx.fillStyle = `hsla(0, 0%, 0%, 0.01)`;
     ctx.fillRect(-width / 2, -height / 2, width, height);
-    //pattern1(acc, width, height);
-    pattern2(acc);
+    pattern(acc, ft);
     counter ++;
 }
 
-function pattern1(volume) {
-    const delta = volume - graphV;
-    const baseFactor = minDimension / 200;
-
-    if (0 < delta && graphV < 2) {
-        graphV += delta / 1000;
-    } else if (-2 < graphV) {
-        graphV -= GRAPH_DECAY;
-    }
-    graphVal += graphV / 100;
-
-    const n = 17 + Math.sin(graphVal / 100) * 2;
-    const k =  5 + Math.sin(graphVal / 100) * 2;
-    const radius = 180 * baseFactor;
-
-    ctx.beginPath();
-
-    for (let t = 0; t <= 12; t += 0.01) {
-        let x = ((Math.sin(volume / 6000) - k) * Math.cos(k * t) * radius + k * Math.cos((n - k) * t) * radius) / n;
-        let y = ((Math.cos(volume / 6000) - k) * Math.sin(k * t) * radius + k * Math.sin((n - k) * t) * radius) / n;
-
-        if (t === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
-    }
-    ctx.strokeStyle = `hsla(${volume / 3 + graphVal}, ${50}%, 50%, ${Math.log2(volume + 0.5) / 30})`;
-    ctx.stroke();
-}
-
-function pattern2(volume) {
+function pattern(volume, ts) {
     let b = Math.sin(counter / 1000) * 5 + 10 + Math.log2(volume / 500 + 0.5);
     const f = x => 6 * Math.cos(x);
-    const g = x => Math.sin(b * x);
+    const g = x => Math.sin(b * x) + Math.sin(volume / 10);
     const radius = minDimension / 8;
+    const increment = 1 / (params.smoothing.value * 5);
 
-
-
-
-    for (let a = 0; a <= Math.PI * 2; a += Math.PI / 10) {
+    for (let a = 0, i = 0; a <= Math.PI * 2; a += Math.PI /  (2 + (volume / 100)), i++) {
+        const h = params.hue.value + i * params.spread.value;
         ctx.beginPath();
-        ctx.strokeStyle = `hsla(${a * 20}, 50%, 50%, 0.9)`;
-        for (let t = 0; t <= 6.29; t += 0.2) {
+        ctx.strokeStyle = `hsla(${h}, 50%, 50%, 0.3)`;
+        for (let t = 0; t <= 6.29; t += increment) {
             let x = (f(t) * Math.cos(a) - g(t) * Math.sin(a)) * radius;
             let y = (f(t) * Math.sin(a) + g(t) * Math.cos(a)) * radius;
             if (t === 0) {
@@ -103,23 +91,25 @@ function pattern2(volume) {
             } else {
                 ctx.lineTo(x, y);
             }
-
         }
+
         ctx.stroke();
     }
-
 }
 
 function resize(skqw) {
     if (ctx) {
         let {width, height} = skqw.dimensions;
+        ctxBuffer.canvas.width = width;
+        ctxBuffer.canvas.height = height;
+        ctxBuffer.translate(width/2, height/2);
         ctx.lineWidth = width / 600;
         ctx.translate(width/2, height/2);
         minDimension = Math.min(width, height);
     }
 }
 
-function paramChange(change) {
+function paramChange(skqw, change) {
     params[change.paramKey].value = change.newValue;
 }
 
@@ -128,7 +118,7 @@ function destroy() {
 }
 
 module.exports = {
-    name: 'Spirograph',
+    name: 'Hyperwave',
     init,
     tick,
     resize,

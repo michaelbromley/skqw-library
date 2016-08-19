@@ -27,7 +27,10 @@ class Particle {
     }
 
     render(width, height) {
-        const fillStyle =  `hsla(${this.hue}, ${Math.min(this.strength, 100)}%, 50%, ${this.radius / 3}`;
+        if (this.strength < 1) {
+            return;
+        }
+        const fillStyle =  `hsla(${this.hue}, ${Math.min(this.strength, 100)}%, 50%, ${Math.min(this.strength / 100, 1)}`;
         this.ctx.fillStyle = fillStyle;
         this.ctx.beginPath();
         this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -56,7 +59,7 @@ class Particle {
         }
 
         if (1 < this.strength) {
-            this.strength -= 0.4;
+            this.strength -= 0.2;
         }
     }
 }

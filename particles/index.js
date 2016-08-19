@@ -137,7 +137,7 @@ function constructNodes(nodeCount, w, h) {
 function constructEdges(particles, nodes) {
     let edges = {};
     nodes.forEach((n, index) => {
-        const hue = params.hue.value + index * 20;
+        const hue = params.hue.value + index * 30;
         particles.forEach(p => {
             edges[`${n.id}_${p.id}`] = new Edge(ctx.fore, p, n, hue);
         });
@@ -186,7 +186,7 @@ function drawBg(recentVol, width, height) {
         };
         let gradRadius = longestDimension / 1.5;
         let grd = ctx.bg.createRadialGradient(centerX, centerY, gradRadius, inner.x, inner.y, 0);
-        grd.addColorStop(0, `hsla(${bgIndex === 0 ? params.hue.value : params.hue.value + 100}, 80%, ${bgAcc[bgIndex] / longestDimension * 30 + 10}%, 0.9)`);
+        grd.addColorStop(0, `hsla(${bgIndex === 0 ? params.hue.value : params.hue.value + 100}, 80%, ${bgAcc[bgIndex] / longestDimension * 30 + 10}%, 0.5)`);
         grd.addColorStop(1, `rgba(0,0,0, 0.9)`);
         ctx.bg.fillStyle = grd;
         ctx.bg.fillRect(0, 0, width, height);
@@ -202,15 +202,6 @@ function drawParticles(timestamp, width, height) {
     if (1 < particleAcc) {
         particleAcc -= 10;
     }
-    /*  ctx.mid.globalCompositeOperation = 'lighten';
-     bufferCtx.clearRect(0, 0, width, height);
-     bufferCtx.globalAlpha = Math.min(0.99, particleAcc / 800);
-     bufferCtx.drawImage(ctx.mid.canvas, 0, 0);
-     ctx.mid.clearRect(0, 0, width, height);
-     ctx.mid.drawImage(bufferCtx.canvas, 0, 0);*/
-
-    // Step and render all particles
-    // ctx.fore.fillStyle = 'rgba(255, 255, 255, 0.2)';
     for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         p.tick(timestamp);

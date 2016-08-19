@@ -10,6 +10,7 @@ class Polygon {
         this.radius = 0; // the highest colour value, which then fades out
         this.decay = this.num > 62 ? 2 : 3; // increase this value to fade out faster.
         this.highlight = 0; // for highlighted stroke effect;
+        this.acc = 0; // the smoothed volume value
 
         // figure out the x and y coordinates of the center of the polygon based on the
         // 60 degree XY axis coordinates passed in
@@ -52,6 +53,9 @@ class Polygon {
     render(ft, volume, tileCount, params, acc) {
         let bucket = Math.ceil(ft.length / tileCount * this.num);
         let val = ft[bucket] * params.sensitivity.value;
+        let delta = val - this.acc;
+        this.acc += delta / 10;
+
         // establish the value for this tile
         if (val > this.radius) {
             this.radius = val;
@@ -75,8 +79,8 @@ class Polygon {
             if (val > 100) {
                 this.highlight = 100; // add the highlight effect if it's pretty loud
             }
-            let h = -10 + val + params.hue.value;
-            let a = Math.min(Math.log2(val + 1) / 10, 1);
+            let h = -10 + this.acc + params.hue.value;
+            let a = Math.min(Math.log2(this.acc + 0.5) / 10, 1);
             this.ctx.fillStyle = `hsla(${h}, 50%, ${50}%, ${a}`;
             this.ctx.fill();
             // stroke

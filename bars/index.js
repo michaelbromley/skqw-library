@@ -13,19 +13,22 @@ let params = {
         min: 0,
         max: 360
     },
-    showLines: {
-        value: true,
-        type: 'boolean',
-        label: 'Show time series'
-    }
+    waveHeight: {
+        value: 3,
+        type: 'range',
+        label: 'Wave Height',
+        min: 1,
+        max: 10
+    },
 };
-let highs = [];
+let acc = [];
 let volHigh = 0;
 const VOL_DECAY = 2;
 const DECAY = 20;
 
 function init(skqw) {
     ctx = skqw.createCanvas().getContext('2d');
+    skqw.sample.ft.forEach((v, i) => acc[i] = 0);
     setTimeout(() => {
         ctx.lineCap = 'round';
     });
@@ -40,10 +43,8 @@ function tick(skqw) {
 
     ctx.globalCompositeOperation = 'screen';
     drawBars(width, height, ft);
-    if (params.showLines.value === true) {
-        ctx.globalCompositeOperation = 'source-over';
-        drawWave(width, height, ts);
-    }
+    ctx.globalCompositeOperation = 'source-over';
+    drawWave(width, height, ts);
 }
 
 function add(a, b) {
@@ -53,12 +54,7 @@ function add(a, b) {
 function drawBg(w, h, ft) {
     const vol = ft.reduce(add, 0);
     const delta = vol - volHigh;
-    if (volHigh < vol) {
-        volHigh += delta / 20;
-    }
-    if (VOL_DECAY < volHigh) {
-        volHigh -= VOL_DECAY;
-    }
+    volHigh += delta / 20;
     const gradient = ctx.createLinearGradient(0, 0, 0, h);
     gradient.addColorStop(0, `hsla(${params.hue.value + 50}, 50%, 5%, 0.3)`);
     gradient.addColorStop(1, `hsla(${params.hue.value + 50}, 100%, ${Math.log10(volHigh / 2 + 2) * 10}%, 0.8)`);
@@ -79,7 +75,7 @@ function drawWave(w, h, ts) {
     let mid;
 
     for(let i = 0; i < ts.length; i++) {
-        const val = ts[i];
+        const val = ts[i] * params.waveHeight.value;
         p1 = linePoint(i, interval, val, h);
         p2 = linePoint(i + 1, interval, val, h);
         if (i === 0) {
@@ -116,16 +112,14 @@ function drawBars(w, h, ft) {
         const val = ft[i];
         const x = i * barWidth;
         const height = Math.log10(val + 1) * h;
-        if (!highs[i] || highs[i] < height) {
-            highs[i] = height;
-        } else {
-            highs[i] -= DECAY;
-        }
-        const y = h - highs[i];
-        const saturation = Math.log2(1 + highs[i]) * 40;
+        const delta = height - acc[i];
+        acc[i] += delta / 4;
+
+        const y = h - acc[i];
+        const saturation = Math.log2(1 + acc[i]) * 40;
         ctx.fillStyle = `hsla(${params.hue.value + saturation}, 50%, 50%, 0.8)`;
 
-        ctx.fillRect(x, y, barWidth - 1, highs[i]);
+        ctx.fillRect(x, y, barWidth - 1, acc[i]);
     }
 }
 

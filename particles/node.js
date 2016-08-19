@@ -34,12 +34,9 @@ class Node {
     }
 
     getNewHaloRadius(current, val, widthFactor) {
-        if (current < val * widthFactor) {
-            return val * widthFactor;
-        } else if (HALO_DECAY < current) {
-            return current - HALO_DECAY;
-        }
-        return val;
+        const delta = val - current;
+        current += delta / 10;
+        return current;
     }
 
     getNewSpeed(current, val) {
